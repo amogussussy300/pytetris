@@ -43,9 +43,6 @@ structs = [
 
 
 def create_shape_from_struct(space, struct, position=(400, 50), cell_size=20, color=(255, 255, 255, 255)):
-    """
-    Отрисовывает pymunk объект по структуре в листе выше
-    """
     body = pymunk.Body(16, 100)
     body.position = position
     space.add(body)
@@ -69,7 +66,7 @@ def create_shape_from_struct(space, struct, position=(400, 50), cell_size=20, co
                 shape.density = 1.5
                 shape.elasticity = 0.1
                 shape.friction = 0.5
-                shape.color = (*color, 255)  # Add the color attribute to the shape
+                shape.color = (*color, 255)
                 space.add(shape)
                 shapes.append(shape)
 
