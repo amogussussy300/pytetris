@@ -71,10 +71,9 @@ structs = [
         (1, 1, 1, 1)
     ]),
     np.array([
-        (1,),
-        (1,),
-        (1,),
-        (1,)
+        (1, 1),
+        (1, 0),
+        (1, 0),
     ]),
     np.array([
         (0, 1),
@@ -115,9 +114,9 @@ def create_shape_from_struct(space, struct, position=(400, 50), cell_size=20, co
 
                 shape = pymunk.Poly(body, vertices)
                 shape.collision_type = 1
-                shape.density = 1.5
-                shape.elasticity = 0.1
-                shape.friction = 0.5
+                shape.density = 3
+                shape.elasticity = 0.075
+                shape.friction = 0.75
                 shape.color = (*color, 255)
                 space.add(shape)
                 shapes.append(shape)
