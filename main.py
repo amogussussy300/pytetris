@@ -7,8 +7,10 @@ import random
 import pymunk.pygame_util
 from pymunk import Body
 
+
+resolution = (800, 600)
 pygame.init()
-display = pygame.display.set_mode((800, 600))
+display = pygame.display.set_mode(resolution)
 clock = pygame.time.Clock()
 FPS = 144
 collided_bodies = []
@@ -39,9 +41,10 @@ def change_body_type(space, body, b_type):
 def begin_collision(arbiter, space, data):
     shape1, shape2 = arbiter.shapes
     body1, body2 = shape1.body, shape2.body
+    change_body_velocity(space, body1, (0, 0))
+    change_body_velocity(space, body2, (0, 0))
     collided_bodies.append(body1)
     collided_bodies.append(body2)
-    print(f"Collision detected between {body1} and {body2}")
     return True
 
 
@@ -57,7 +60,6 @@ def post_step(space, dt):
     for body in collided_bodies:
         if body.body_type == 1:
             change_body_type(space, body, 'dynamic')
-            print(collided_bodies)
             print('changed body_type for', body)
     collided_bodies.clear()
 
@@ -73,12 +75,12 @@ structs = [
     np.array([
         (1, 1),
         (1, 0),
-        (1, 0),
+        (1, 0)
     ]),
     np.array([
-        (0, 1),
         (1, 1),
-        (1, 0)
+        (0, 1),
+        (0, 1)
     ]),
     np.array([
         (1, 1, 0),
@@ -87,11 +89,15 @@ structs = [
     np.array([
         (0, 1, 1),
         (1, 1, 0)
+    ]),
+    np.array([
+        (0, 1, 0),
+        (1, 1, 1)
     ])
 ]
 
 
-def create_shape_from_struct(space, struct, position=(400, 50), cell_size=20, color=(255, 255, 255, 255)):
+def create_shape_from_struct(space, struct, position=(resolution[0] // 2, 50), cell_size=20, color=(255, 255, 255, 255)):
     body = pymunk.Body(16, 100, body_type=pymunk.Body.KINEMATIC)
     body.velocity = (0, 20)
     body.position = position
@@ -136,7 +142,7 @@ def change_body_velocity(space, body, velocity: tuple):
 
 def create_ground(space):
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
-    shape = pymunk.Segment(body, (0, 550), (800, 550), 5)
+    shape = pymunk.Segment(body, (0, resolution[1] - 50), (resolution[0], resolution[1] - 50), 5)
     shape.elasticity = 0.1
     shape.friction = 0.7
     shape.collision_type = 0
@@ -145,8 +151,6 @@ def create_ground(space):
 
 create_ground(space)
 
-for body in space.bodies:
-    print(body, body.body_type)
 
 def main():
     draw_options = pymunk.pygame_util.DrawOptions(display)
@@ -177,11 +181,11 @@ def main():
 
         if keys[pygame.K_LEFT]:
             if last_body.body_type == 1:
-                change_body_velocity(space, last_body, (-90, 0))
+                change_body_velocity(space, last_body, (-90, last_body.velocity[1]))
 
         if keys[pygame.K_RIGHT]:
             if last_body.body_type == 1:
-                change_body_velocity(space, last_body, (90, 0))
+                change_body_velocity(space, last_body, (90, last_body.velocity[1]))
 
         space.debug_draw(draw_options)
         space.step(1 / FPS)
