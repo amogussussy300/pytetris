@@ -165,7 +165,10 @@ def main():
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 struct = random.choice(structs)
                 color = tuple(random.randrange(20, 236) for i in range(3))
-                create_shape_from_struct(space, struct, color=color)
+                if (resolution[1] - highest_body_y) >= resolution[1] - 100:
+                    create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - 400),  color=color)
+                else:
+                    create_shape_from_struct(space, struct, color=color)
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 if last_body.body_type == 1:
                     last_body.angle += math.pi / 2
@@ -173,7 +176,6 @@ def main():
         display.fill((200, 200, 200))
 
         keys = pygame.key.get_pressed()
-        print(bodies)
         if keys[pygame.K_DOWN]:
             if last_body.body_type == 1:
                 change_body_velocity(space, last_body, (0, 140))
