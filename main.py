@@ -1,12 +1,9 @@
 import math
-
 import pygame
 import pymunk
 import numpy as np
 import random
 import pymunk.pygame_util
-from pymunk import Body
-
 
 resolution = (800, 600)
 pygame.init()
@@ -17,12 +14,11 @@ collided_bodies = []
 space = pymunk.Space()
 space.gravity = 0, 850
 
-
 def change_body_type(space, body, b_type):
     """
     :param space: select pymunk space
     :param body: select pymunk body
-    :param b_type: select type: static, dynamic, kinematic
+    :param b_type: select type: static, dyn amic, kinematic
     """
     space.remove(body)
 
@@ -97,7 +93,7 @@ structs = [
 ]
 
 
-def create_shape_from_struct(space, struct, position=(resolution[0] // 2, 50), cell_size=20, color=(255, 255, 255, 255)):
+def create_shape_from_struct(space, struct, position=(resolution[0] // 2, -50), cell_size=20, color=(255, 255, 255, 255)):
     body = pymunk.Body(16, 100, body_type=pymunk.Body.KINEMATIC)
     body.velocity = (0, 20)
     body.position = position
@@ -153,9 +149,15 @@ create_ground(space)
 
 
 def main():
+    camera = pygame.Vector2(0, 0)
     draw_options = pymunk.pygame_util.DrawOptions(display)
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
     while True:
+        bodies = [body.position[1] for body in space.bodies if body.body_type != pymunk.Body.STATIC]
+        if bodies:
+            highest_body_y = min(bodies)
+        else:
+            highest_body_y = 0
         last_body = space.bodies[-1]
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -171,7 +173,7 @@ def main():
         display.fill((200, 200, 200))
 
         keys = pygame.key.get_pressed()
-
+        print(bodies)
         if keys[pygame.K_DOWN]:
             if last_body.body_type == 1:
                 change_body_velocity(space, last_body, (0, 140))
@@ -187,9 +189,14 @@ def main():
             if last_body.body_type == 1:
                 change_body_velocity(space, last_body, (90, last_body.velocity[1]))
 
-        space.debug_draw(draw_options)
+        if resolution[1] - (highest_body_y - 80) > resolution[1]:
+            camera.y = -highest_body_y + 80
+
+        offset = pymunk.Transform(tx=0, ty=camera.y)
         space.step(1 / FPS)
         post_step(space, 1 / FPS)
+        draw_options.transform = offset
+        space.debug_draw(draw_options)
         pygame.display.flip()
         clock.tick(FPS)
 
