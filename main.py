@@ -15,13 +15,13 @@ space = pymunk.Space()
 space.gravity = 0, 850
 
 
-def change_body_type(space, body, b_type):
+def change_body_type(sp, body, b_type):
     """
-    :param space: select pymunk space
+    :param sp: select pymunk space
     :param body: select pymunk body
-    :param b_type: select type: static, dyn amic, kinematic
+    :param b_type: select type: static, dynamic, kinematic
     """
-    space.remove(body)
+    sp.remove(body)
 
     if b_type == 'static':
         body.body_type = pymunk.Body.STATIC
@@ -32,14 +32,14 @@ def change_body_type(space, body, b_type):
     else:
         raise ValueError("Body type is incorrect")
 
-    space.add(body)
+    sp.add(body)
 
 
-def begin_collision(arbiter, space, data):
+def begin_collision(arbiter, sp, data):
     shape1, shape2 = arbiter.shapes
     body1, body2 = shape1.body, shape2.body
-    change_body_velocity(space, body1, (0, 0))
-    change_body_velocity(space, body2, (0, 0))
+    change_body_velocity(sp, body1, (0, 0))
+    change_body_velocity(sp, body2, (0, 0))
     collided_bodies.append(body1)
     collided_bodies.append(body2)
     return True
@@ -52,11 +52,11 @@ collision_handler_static_kinematic = space.add_collision_handler(0, 1)
 collision_handler_static_kinematic.begin = begin_collision
 
 
-def post_step(space, dt):
+def post_step(sp, dt):
     global collided_bodies
     for body in collided_bodies:
         if body.body_type == 1:
-            change_body_type(space, body, 'dynamic')
+            change_body_type(sp, body, 'dynamic')
             print('changed body_type for', body)
     collided_bodies.clear()
 
@@ -94,11 +94,11 @@ structs = [
 ]
 
 
-def create_shape_from_struct(space, struct, position=(resolution[0] // 2, 0), cell_size=20, color=(255, 255, 255, 255)):
+def create_shape_from_struct(sp, struct, position=(resolution[0] // 2, 0), cell_size=20, color=(255, 255, 255, 255)):
     body = pymunk.Body(16, 100, body_type=pymunk.Body.KINEMATIC)
     body.velocity = (0, 25)
     body.position = position
-    space.add(body)
+    sp.add(body)
 
     rows, cols = struct.shape
     shapes = []
@@ -121,15 +121,15 @@ def create_shape_from_struct(space, struct, position=(resolution[0] // 2, 0), ce
                 shape.elasticity = 0.075
                 shape.friction = 0.75
                 shape.color = (*color, 255)
-                space.add(shape)
+                sp.add(shape)
                 shapes.append(shape)
 
     return shapes
 
 
-def change_body_velocity(space, body, velocity: tuple):
+def change_body_velocity(sp, body, velocity: tuple):
     """
-    :param space: select pymunk space
+    :param sp: select pymunk space
     :param body: select pymunk kinematic body
     :param velocity: tuple velocity
     """
@@ -137,42 +137,59 @@ def change_body_velocity(space, body, velocity: tuple):
         body.velocity = velocity
 
 
-def create_ground(space):
+def remove_body(sp, body):
+    for shape in body.shapes:
+        if shape in sp.shapes:
+            sp.remove(shape)
+
+    constraints_to_remove = [
+        constraint for constraint in sp.constraints
+        if body in (constraint.a, constraint.b)
+    ]
+    for constraint in constraints_to_remove:
+        sp.remove(constraint)
+
+    if body in sp.bodies:
+        sp.remove(body)
+
+
+def block_under_0_event(block: pymunk.Shape):
+    print('block under 0:', block, block.body.position)
+
+
+def create_ground(sp):
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
-    shape = pymunk.Segment(body, (0, resolution[1] - 50), (resolution[0], resolution[1] - 50), 5)
+    shape = pymunk.Segment(body, (resolution[0] // 3 + 40, resolution[1] - 50), (resolution[0] - resolution[0] // 3 - 40, resolution[1] - 50), 5)
     shape.elasticity = 0.1
     shape.friction = 0.7
     shape.collision_type = 0
-    space.add(body, shape)
+    sp.add(body, shape)
 
 
 create_ground(space)
 
 
 def main():
-    camera = pygame.Vector2(0, 0)
+    camera = pygame.Vector2(0, -59.3)
     draw_options = pymunk.pygame_util.DrawOptions(display)
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
     while True:
-        bodies = [(shape.bb.top, shape.bb.bottom, shape.bb.center()[1]) for shape in space.shapes if shape.body.body_type != pymunk.Body.STATIC]
+        bodies = [(shape.bb.top, shape.bb.bottom, shape.bb.center()[1], shape) for shape in space.shapes if shape.body.body_type != pymunk.Body.STATIC]
         t_bodies = [position[0] for position in bodies]
         b_bodies = [position[1] for position in bodies]
-        c_bodies = [position[2] for position in bodies]
         if t_bodies:
             highest_body_y = min(t_bodies)
             highest_body_y_b = min(b_bodies)
-            highest_body_y_c = min(c_bodies)
         else:
             highest_body_y = 100
             highest_body_y_b = 0
-            highest_body_y_c = 0
         last_body = space.bodies[-1]
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 struct = random.choice(structs)
-                color = tuple(random.randrange(20, 236) for i in range(3))
+                color = tuple(random.randrange(20, 236) for _ in range(3))
                 if last_body.body_type != pymunk.Body.KINEMATIC:
                     if last_body.body_type == pymunk.Body.STATIC:
                         create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y), color=color)
@@ -180,13 +197,17 @@ def main():
                         if (resolution[1] - highest_body_y) > resolution[1] - 160:
                             create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - 250), color=color)
                         else:
-                            create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - highest_body_y_b + 20), color=color)
+                            create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - highest_body_y_b), color=color)
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 if last_body.body_type == 1:
                     last_body.angle += math.pi / 2
 
-        display.fill((200, 200, 200))
+        for element in bodies:
+            if (element[0] - (element[0] - element[1]) * 3) > (-camera.y + resolution[1]):
+                block_under_0_event(element[3])
+                remove_body(space, element[3].body)
 
+        display.fill((200, 200, 200))
         keys = pygame.key.get_pressed()
         if keys[pygame.K_DOWN]:
             if last_body.body_type == 1:
@@ -203,7 +224,7 @@ def main():
             if last_body.body_type == 1:
                 change_body_velocity(space, last_body, (90, last_body.velocity[1]))
 
-        if (resolution[1] - (highest_body_y - 100) > resolution[1]):
+        if resolution[1] - (highest_body_y - 100) > resolution[1]:
             camera.y = -highest_body_y + (highest_body_y - (highest_body_y_b - 20))
 
         offset = pymunk.Transform(tx=0, ty=camera.y)
