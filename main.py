@@ -14,7 +14,6 @@ collided_bodies = []
 space = pymunk.Space()
 space.gravity = 0, 850
 
-
 def change_body_type(sp, body, b_type):
     """
     :param sp: select pymunk space
@@ -67,7 +66,10 @@ structs = [
         (1, 1)
     ]),
     np.array([
-        (1, 1, 1, 1)
+        (1, 0),
+        (1, 0),
+        (1, 0),
+        (1, 0)
     ]),
     np.array([
         (1, 1),
@@ -80,16 +82,19 @@ structs = [
         (0, 1)
     ]),
     np.array([
-        (1, 1, 0),
-        (0, 1, 1)
+        (1, 0),
+        (1, 1),
+        (0, 1)
     ]),
     np.array([
-        (0, 1, 1),
-        (1, 1, 0)
+        (1, 0),
+        (1, 1),
+        (0, 1)
     ]),
     np.array([
-        (0, 1, 0),
-        (1, 1, 1)
+        (0, 1),
+        (1, 1),
+        (0, 1)
     ])
 ]
 
@@ -120,7 +125,7 @@ def create_shape_from_struct(sp, struct, position=(resolution[0] // 2, 0), cell_
                 shape.density = 3
                 shape.elasticity = 0.075
                 shape.friction = 0.75
-                shape.color = (*color, 255)
+                shape.color = color
                 sp.add(shape)
                 shapes.append(shape)
 
@@ -157,22 +162,24 @@ def block_under_0_event(block: pymunk.Shape):
     print('block under 0:', block, block.body.position)
 
 
-def create_ground(sp):
+def create_ground(sp, camera_offset):
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
-    shape = pymunk.Segment(body, (resolution[0] // 3 + 40, resolution[1] - 50), (resolution[0] - resolution[0] // 3 - 40, resolution[1] - 50), 5)
+    shape = pymunk.Poly(body, ((resolution[0] // 3 + 40, resolution[1] - camera_offset),
+                               (resolution[0] - resolution[0] // 3 - 40, resolution[1] - camera_offset),
+                               (resolution[0] - resolution[0] // 3 - 40, resolution[1] + camera_offset),
+                               (resolution[0] // 3 + 40, resolution[1] + camera_offset)))
     shape.elasticity = 0.1
     shape.friction = 0.7
     shape.collision_type = 0
+    shape.color = (255, 255, 255, 0)
     sp.add(body, shape)
-
-
-create_ground(space)
 
 
 def main():
     camera = pygame.Vector2(0, -59.3)
     draw_options = pymunk.pygame_util.DrawOptions(display)
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
+    create_ground(space, abs(camera.y))
     while True:
         bodies = [(shape.bb.top, shape.bb.bottom, shape.bb.center()[1], shape) for shape in space.shapes if shape.body.body_type != pymunk.Body.STATIC]
         t_bodies = [position[0] for position in bodies]
@@ -181,7 +188,7 @@ def main():
             highest_body_y = min(t_bodies)
             highest_body_y_b = min(b_bodies)
         else:
-            highest_body_y = 100
+            highest_body_y = 59.3
             highest_body_y_b = 0
         last_body = space.bodies[-1]
         for event in pygame.event.get():
@@ -189,15 +196,16 @@ def main():
                 return
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 struct = random.choice(structs)
-                color = tuple(random.randrange(20, 236) for _ in range(3))
+                color = tuple(random.randrange(25, 231) for _ in range(3))
                 if last_body.body_type != pymunk.Body.KINEMATIC:
                     if last_body.body_type == pymunk.Body.STATIC:
-                        create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y), color=color)
+                        create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y + 10), color=(*color, 255))
                     else:
                         if (resolution[1] - highest_body_y) > resolution[1] - 160:
-                            create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - 250), color=color)
+                            create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - 250), color=(*color, 255))
                         else:
-                            create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - highest_body_y_b), color=color)
+                            print(highest_body_y, highest_body_y_b)
+                            create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - highest_body_y_b), color=(*color, 255))
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 if last_body.body_type == 1:
                     last_body.angle += math.pi / 2
@@ -224,8 +232,9 @@ def main():
             if last_body.body_type == 1:
                 change_body_velocity(space, last_body, (90, last_body.velocity[1]))
 
-        if resolution[1] - (highest_body_y - 100) > resolution[1]:
-            camera.y = -highest_body_y + (highest_body_y - (highest_body_y_b - 20))
+        if last_body.body_type != pymunk.Body.STATIC:
+            if resolution[1] - (highest_body_y - 100) > resolution[1]:
+                camera.y = -highest_body_y + (highest_body_y - (highest_body_y_b - 20))
 
         offset = pymunk.Transform(tx=0, ty=camera.y)
         space.step(1 / FPS)
