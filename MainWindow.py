@@ -2,23 +2,11 @@ import pygame
 import os
 
 Gamemode = 2
-def BasicGamemodes(e, m):  # просто вовзаращаю базовое меню режимов игры
-    pygame.draw.rect(e, pygame.Color('White'), (200, 100, 400, 60))
-    text_surface = m.render('Выживание', False, (0, 0, 0))
-    e.blit(text_surface, (315, 112))
-
-    pygame.draw.rect(e, pygame.Color('Black'), (200, 200, 400, 60))
-    text_surface1 = m.render('Оригинальный', False, pygame.Color('White'))
-    e.blit(text_surface1, (325, 212))
-
-    pygame.draw.rect(e, pygame.Color('White'), (200, 300, 400, 60))
-    text_surface2 = m.render('Пазл', False, (0, 0, 0))
-    e.blit(text_surface2, (335, 312))
-
-
+clicked = 1
+color = pygame.Color('Grey')
 def Gamemodes(k):
     global Gamemode
-    clicked = 1
+    global clicked
     pygame.init()
     pygame.font.init()
     screen1 = pygame.display.set_mode((800, 800))
@@ -86,13 +74,37 @@ def Gamemodes(k):
             if event.type == pygame.MOUSEBUTTONUP:
                 clicked = 0
         pygame.display.flip()
-
+def Settings():
+    global color
+    global clicked
+    pygame.init()
+    pygame.font.init()
+    my_font = pygame.font.SysFont('Comic Sans MS', 30)
+    Col_Surf = my_font.render('Color', False, pygame.Color('Black'))
+    screen2 = pygame.display.set_mode((800, 800))
+    screen2.fill(pygame.Color('Grey'))
+    pygame.draw.rect(screen2, pygame.Color('White'), (100, 100, 400, 60))
+    screen2.blit(Col_Surf, (120, 112))
+    pygame.draw.rect(screen2, color, (370, 110, 40, 40), 25)
+    while True:
+        x, y = pygame.mouse.get_pos()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                mainWindow()
+                exit()
+            if event.type == pygame.MOUSEBUTTONUP:
+                clicked = 0
+            if 370 <= x <= 410 and 110 <= y <= 150 and event.type == pygame.MOUSEBUTTONDOWN and clicked == 0:
+                pass
+        pygame.display.flip()
 
 def mainWindow():
+    global color
     pygame.init()
     pygame.font.init()
     screen = pygame.display.set_mode((800, 800))
-    screen.fill(pygame.Color('Grey'))
+    screen.fill(pygame.Color(color))
     my_font = pygame.font.SysFont('Comic Sans MS', 30)
     text_surface = my_font.render('Start Game!', False, (0, 0, 0))
     text_surface1 = my_font.render('Gamemode', False, (0, 0, 0))
@@ -139,13 +151,11 @@ def mainWindow():
                     exit()
                 elif 200 <= y <= 260:
                     Gamemodes(2)
+                elif 300 <= y <= 360:
+                    Settings()
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
         pygame.display.flip()
-
-
-mainWindow()
-
 
 mainWindow()
