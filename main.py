@@ -204,14 +204,16 @@ def main():
                         if (resolution[1] - highest_body_y) > resolution[1] - 160:
                             create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - 250), color=(*color, 255))
                         else:
-                            print(highest_body_y, highest_body_y_b)
                             create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - highest_body_y_b), color=(*color, 255))
+                else:
+                    change_body_type(space, last_body, 'dynamic')
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 if last_body.body_type == 1:
                     last_body.angle += math.pi / 2
 
         for element in bodies:
-            if (element[0] - (element[0] - element[1]) * 3) > (-camera.y + resolution[1]):
+            if (element[0] - (element[0] - element[1]) * 3) > (resolution[1] + (element[0] - element[1])):
+                print(resolution[1] + (element[0] - element[1]))
                 block_under_0_event(element[3])
                 remove_body(space, element[3].body)
 
