@@ -15,20 +15,6 @@ space.gravity = 0, 850
 air_friction = 0.369420228
 pygame.init()
 
-print('WIND??????????????????????? (y/n)')
-print('WIND??????????????????????? (y/n)')
-print('WIND??????????????????????? (y/n)')
-print('WIND??????????????????????? (y/n)')
-print('WIND??????????????????????? (y/n)')
-prompt = input('WIND??????????????????????? (y/n): ')
-if prompt.strip().lower() == 'y':
-    WIND = True
-elif prompt.strip().lower() == 'n':
-    WIND = False
-else:
-    print(':(')
-    exit()
-
 
 def change_body_type(sp, body, b_type):
     """
@@ -159,9 +145,9 @@ def create_wind_particle(sp, position, velocity=(500, 10), mass=40):
     body = pymunk.Body(mass, 56, body_type=pymunk.Body.DYNAMIC)
     body.velocity = velocity
     body.position = position
-    shape = pymunk.Circle(body, 0.02)
+    shape = pymunk.Circle(body, 0.01)
     shape.friction = air_friction
-    shape.elasticity = 0.5
+    shape.elasticity = 0
     shape.collision_type = 3
     shape.color = (200, 200, 200, 0)
     sp.add(body, shape)
@@ -210,7 +196,7 @@ def create_ground(sp, camera_offset):
     sp.add(body, shape)
 
 
-def main():
+def main(WIND: bool):
     camera = pygame.Vector2(0, -59.3)
     draw_options = pymunk.pygame_util.DrawOptions(display)
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
@@ -235,8 +221,10 @@ def main():
         if WIND:
             if dynamic_bodies:
                 highest_dynamic_body = min(dynamic_bodies)
+                lowest_dynamic_body = max(dynamic_bodies)
             else:
                 highest_dynamic_body = resolution[1]
+                lowest_dynamic_body = resolution[1]
         last_body = new_bodies[-1]
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -273,8 +261,10 @@ def main():
                     remove_body(space, element[3].body)
                 if len(w_bodies) > 120:
                     remove_body(space, w_bodies[-1][3].body)
-                if element[0] > highest_dynamic_body + 40:
-                    remove_body(space, w_bodies[w_bodies.index(element)][3].body)
+                if element[0] > lowest_dynamic_body + 5:
+                    remove_body(space, element[3].body)
+                if element[2].velocity[0] < 4 and element[2].velocity[1] < 4:
+                    remove_body(space, element[3].body)
 
         display.fill((200, 200, 200))
         keys = pygame.key.get_pressed()
@@ -306,5 +296,5 @@ def main():
         clock.tick(FPS)
 
 
-main()
+main(True)
 pygame.quit()
