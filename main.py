@@ -6,13 +6,29 @@ import random
 import pymunk.pygame_util
 
 resolution = (800, 600)
-pygame.init()
-display = pygame.display.set_mode(resolution)
+display = pygame.display.set_mode(resolution, pygame.SRCALPHA)
 clock = pygame.time.Clock()
 FPS = 144
 collided_bodies = []
 space = pymunk.Space()
 space.gravity = 0, 850
+air_friction = 0.369420228
+pygame.init()
+
+print('WIND??????????????????????? (y/n)')
+print('WIND??????????????????????? (y/n)')
+print('WIND??????????????????????? (y/n)')
+print('WIND??????????????????????? (y/n)')
+print('WIND??????????????????????? (y/n)')
+prompt = input('WIND??????????????????????? (y/n): ')
+if prompt.strip().lower() == 'y':
+    WIND = True
+elif prompt.strip().lower() == 'n':
+    WIND = False
+else:
+    print(':(')
+    exit()
+
 
 def change_body_type(sp, body, b_type):
     """
@@ -44,11 +60,18 @@ def begin_collision(arbiter, sp, data):
     return True
 
 
+def begin_w_kinematic(arbiter, sp, data):
+    return True
+
+
 collision_handler = space.add_collision_handler(1, 1)
 collision_handler.begin = begin_collision
 
 collision_handler_static_kinematic = space.add_collision_handler(0, 1)
 collision_handler_static_kinematic.begin = begin_collision
+
+collision_handler_wind_kinematic = space.add_collision_handler(1, 3)
+collision_handler_wind_kinematic.begin = begin_w_kinematic
 
 
 def post_step(sp, dt):
@@ -132,6 +155,18 @@ def create_shape_from_struct(sp, struct, position=(resolution[0] // 2, 0), cell_
     return shapes
 
 
+def create_wind_particle(sp, position, velocity=(500, 10), mass=40):
+    body = pymunk.Body(mass, 56, body_type=pymunk.Body.DYNAMIC)
+    body.velocity = velocity
+    body.position = position
+    shape = pymunk.Circle(body, 0.02)
+    shape.friction = air_friction
+    shape.elasticity = 0.5
+    shape.collision_type = 3
+    shape.color = (200, 200, 200, 0)
+    sp.add(body, shape)
+
+
 def change_body_velocity(sp, body, velocity: tuple):
     """
     :param sp: select pymunk space
@@ -181,16 +216,28 @@ def main():
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
     create_ground(space, abs(camera.y))
     while True:
-        bodies = [(shape.bb.top, shape.bb.bottom, shape.bb.center()[1], shape) for shape in space.shapes if shape.body.body_type != pymunk.Body.STATIC]
+        bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes
+                  if shape.body.body_type != pymunk.Body.STATIC and shape.friction != air_friction]
         t_bodies = [position[0] for position in bodies]
         b_bodies = [position[1] for position in bodies]
+        s_bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes if
+                    shape.friction != air_friction]
+        new_bodies = [i[2] for i in s_bodies]
+        if WIND:
+            w_bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes if shape.friction == air_friction]
+            dynamic_bodies = [i[1] for i in s_bodies if i[2].body_type == pymunk.Body.DYNAMIC]
         if t_bodies:
             highest_body_y = min(t_bodies)
             highest_body_y_b = min(b_bodies)
         else:
             highest_body_y = 59.3
             highest_body_y_b = 0
-        last_body = space.bodies[-1]
+        if WIND:
+            if dynamic_bodies:
+                highest_dynamic_body = min(dynamic_bodies)
+            else:
+                highest_dynamic_body = resolution[1]
+        last_body = new_bodies[-1]
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
@@ -213,9 +260,21 @@ def main():
 
         for element in bodies:
             if (element[0] - (element[0] - element[1]) * 3) > (resolution[1] + (element[0] - element[1])):
-                print(resolution[1] + (element[0] - element[1]))
                 block_under_0_event(element[3])
                 remove_body(space, element[3].body)
+
+        if WIND:
+            w_pos = (random.randrange(-resolution[0], resolution[0]), random.randrange(-resolution[1], resolution[1]))
+            w_v = (600, random.randrange(10, 90))
+            create_wind_particle(space, w_pos, w_v, random.randrange(15, 135))
+
+            for element in w_bodies:
+                if (element[0] - (element[0] - element[1]) * 3) > (resolution[1] + (element[0] - element[1])):
+                    remove_body(space, element[3].body)
+                if len(w_bodies) > 120:
+                    remove_body(space, w_bodies[-1][3].body)
+                if element[0] > highest_dynamic_body + 40:
+                    remove_body(space, w_bodies[w_bodies.index(element)][3].body)
 
         display.fill((200, 200, 200))
         keys = pygame.key.get_pressed()
@@ -234,7 +293,7 @@ def main():
             if last_body.body_type == 1:
                 change_body_velocity(space, last_body, (90, last_body.velocity[1]))
 
-        if last_body.body_type != pymunk.Body.STATIC:
+        if last_body.body_type != pymunk.Body.STATIC and [i for i in last_body.shapes][0].friction != air_friction:
             if resolution[1] - (highest_body_y - 100) > resolution[1]:
                 camera.y = -highest_body_y + (highest_body_y - (highest_body_y_b - 20))
 
