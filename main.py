@@ -16,6 +16,18 @@ air_friction = 0.369420228
 pygame.init()
 
 
+class CustomDrawOptions(pymunk.pygame_util.DrawOptions):
+    def draw_circle(self, *args):
+        if len(args) == 6:
+            pos, angle, radius, outline_color, fill_color, shape = args
+        else:
+            return
+
+        if shape.collision_type == 3:
+            return
+        super().draw_circle(*args)
+
+
 def change_body_type(sp, body, b_type):
     """
     :param sp: select pymunk space
@@ -145,7 +157,7 @@ def create_wind_particle(sp, position, velocity=(500, 10), mass=40):
     body = pymunk.Body(mass, 56, body_type=pymunk.Body.DYNAMIC)
     body.velocity = velocity
     body.position = position
-    shape = pymunk.Circle(body, 0.01)
+    shape = pymunk.Circle(body, 1)
     shape.friction = air_friction
     shape.elasticity = 0
     shape.collision_type = 3
@@ -198,7 +210,7 @@ def create_ground(sp, camera_offset):
 
 def main(WIND: bool):
     camera = pygame.Vector2(0, -59.3)
-    draw_options = pymunk.pygame_util.DrawOptions(display)
+    draw_options = CustomDrawOptions(display)
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
     create_ground(space, abs(camera.y))
     while True:
