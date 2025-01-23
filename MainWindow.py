@@ -56,18 +56,21 @@ def Gamemodes(k):
                 if 200 <= y <= 260:
                     Gamemode = 1
                     if k == 2:
+                        clicked = 1
                         pygame.quit()
                         mainWindow()
                     return
                 elif 300 <= y <= 360:
                     Gamemode = 2
                     if k == 2:
+                        clicked = 1
                         pygame.quit()
                         mainWindow()
                     return
                 elif 400 <= y <= 460:
                     Gamemode = 3
                     if k == 2:
+                        clicked = 1
                         pygame.quit()
                         mainWindow()
                     return
@@ -75,6 +78,7 @@ def Gamemodes(k):
                 clicked = 0
         pygame.display.flip()
 def Settings():
+    colors = ['White', 'Black', 'Red', 'Pink', 'Orange']
     global color
     global clicked
     pygame.init()
@@ -85,7 +89,7 @@ def Settings():
     screen2.fill(pygame.Color('Grey'))
     pygame.draw.rect(screen2, pygame.Color('White'), (100, 100, 400, 60))
     screen2.blit(Col_Surf, (120, 112))
-    pygame.draw.rect(screen2, color, (370, 110, 40, 40), 25)
+    pygame.draw.circle(screen2, color, (390, 130), 20, 20)
     while True:
         x, y = pygame.mouse.get_pos()
         for event in pygame.event.get():
@@ -93,10 +97,17 @@ def Settings():
                 pygame.quit()
                 mainWindow()
                 exit()
+            if 100 <= x <= 500 and 100 <= y <= 160 and event.type == pygame.MOUSEBUTTONDOWN:
+                pygame.draw.rect(screen2, pygame.Color('Grey'), (100, 100, 400, 180))
+                xs = 140
+                ys = 125
+                r = 20
+                for i in range(1):
+                    for j in range(5):
+                        pygame.draw.circle(screen2, colors[j], (xs + r, 130), r, r)
+                        xs += r * 2 + 50
             if event.type == pygame.MOUSEBUTTONUP:
                 clicked = 0
-            if 370 <= x <= 410 and 110 <= y <= 150 and event.type == pygame.MOUSEBUTTONDOWN and clicked == 0:
-                pass
         pygame.display.flip()
 
 def mainWindow():
