@@ -1,15 +1,19 @@
 import pygame
 import os
+from main import main
 
 Gamemode = 2
 clicked = 1
 color = pygame.Color('Grey')
+resolution = (800, 800)
+
+
 def Gamemodes(k):
     global Gamemode
     global clicked
     pygame.init()
     pygame.font.init()
-    screen1 = pygame.display.set_mode((800, 800))
+    screen1 = pygame.display.set_mode(resolution)
     screen1.fill(pygame.Color('White'))
     my_font = pygame.font.SysFont('Comic Sans MS', 30)
     text_surface = my_font.render('Start Game!', False, (0, 0, 0))
@@ -30,19 +34,19 @@ def Gamemodes(k):
             x, y = map(int, pygame.mouse.get_pos())
             if 200 <= y <= 260 and 200 <= x <= 600:
                 pygame.draw.rect(screen1, pygame.Color('Black'), (200, 200, 400, 60))
-                text_surface = my_font.render('Выживание', False, pygame.Color('White'))
+                text_surface = my_font.render('Оригинальный', False, pygame.Color('White'))
                 screen1.blit(text_surface, (315, 212))
             else:
                 pygame.draw.rect(screen1, pygame.Color('White'), (200, 200, 400, 60))
-                text_surface = my_font.render('Выживание', False, (0, 0, 0))
+                text_surface = my_font.render('Оригинальный', False, (0, 0, 0))
                 screen1.blit(text_surface, (315, 212))
             if 300 <= y <= 360 and 200 <= x <= 600:
                 pygame.draw.rect(screen1, pygame.Color('Black'), (200, 300, 400, 60))
-                text_surface1 = my_font.render('Оригинальный', False, pygame.Color('White'))
+                text_surface1 = my_font.render('Выживание', False, pygame.Color('White'))
                 screen1.blit(text_surface1, (325, 312))
             else:
                 pygame.draw.rect(screen1, pygame.Color('White'), (200, 300, 400, 60))
-                text_surface1 = my_font.render('Оригинальный', False, (0, 0, 0))
+                text_surface1 = my_font.render('Выживание', False, (0, 0, 0))
                 screen1.blit(text_surface1, (325, 312))
             if 400 <= y <= 460 and 200 <= x <= 600:
                 pygame.draw.rect(screen1, pygame.Color('Black'), (200, 400, 400, 60))
@@ -147,10 +151,11 @@ def mainWindow():
                 if 100 <= y <= 160:
                     Gamemodes(1)
                     print(Gamemode)
-                    os.system('main.py')
+                    main(False, Gamemode, resolution)
                     exit()
                 elif 200 <= y <= 260:
                     Gamemodes(2)
+                    main(False, Gamemode, resolution)
                 elif 300 <= y <= 360:
                     Settings()
             if event.type == pygame.QUIT:

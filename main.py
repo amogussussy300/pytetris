@@ -1,11 +1,12 @@
 import math
+import os
 import pygame
 import pymunk
 import numpy as np
 import random
 import pymunk.pygame_util
 
-resolution = (800, 600)
+resolution = (800, 800)
 display = pygame.display.set_mode(resolution, pygame.SRCALPHA)
 clock = pygame.time.Clock()
 FPS = 144
@@ -14,6 +15,8 @@ space = pymunk.Space()
 space.gravity = 0, 850
 air_friction = 0.369420228
 pygame.init()
+font = pygame.font.SysFont('Aerial', 36)
+font_color = (100, 0, 0)
 
 
 class CustomDrawOptions(pymunk.pygame_util.DrawOptions):
@@ -208,12 +211,72 @@ def create_ground(sp, camera_offset):
     sp.add(body, shape)
 
 
-def main(WIND: bool):
+def end_screen(result):
+    while True:
+        pygame.time.delay(100)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                from MainWindow import mainWindow
+                mainWindow()
+                return
+
+        display.fill((0, 0, 0, 50))
+        large_font = pygame.font.SysFont('comicsans', 80)
+        continue_font = pygame.font.SysFont('comicsans', 55)
+        last_score = large_font.render('Score: ' + str(result["final_score"]), 1,
+                                     (255, 255, 255))
+        continue_text = continue_font.render('Click to continue', 1, (200, 200, 200))
+        display.blit(last_score, (resolution[0] / 2 - last_score.get_width() / 2, resolution[1] // 4))
+        display.blit(continue_text, (resolution[0] / 2 - continue_text.get_width() / 2, resolution[1] // 2))
+        pygame.display.update()
+
+
+# game_type 1 -- оригинальный
+# game_type 2 -- выживание
+# game_type 3 -- пазл
+
+
+def main(WIND: bool, game_type: int, res=None):
+    global resolution
+    global font
+    global font_color
+    if res is not None:
+        resolution = res
+
+    if game_type == 1:
+        counter = 5
+        result = {
+            "highest_block": 0,
+            "amount_of_fallen_blocks": 0,
+            "final_score": 0
+        }
+        fallen_blocks = 0
     camera = pygame.Vector2(0, -59.3)
     draw_options = CustomDrawOptions(display)
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
     create_ground(space, abs(camera.y))
     while True:
+        if game_type == 1:
+            if counter < 0:
+                result["highest_block"] = round(abs(highest_body_y))
+                result["amount_of_fallen_blocks"] = fallen_blocks
+                if not WIND:
+                    result["final_score"] = round(abs(highest_body_y) - fallen_blocks * (fallen_blocks ** 0.5)) if (abs(highest_body_y) - fallen_blocks >= 0) else 0
+                else:
+                    result["final_score"] = round(abs(highest_body_y) - fallen_blocks) if (abs(highest_body_y) - fallen_blocks >= 0) else 0
+                for element in bodies:
+                    remove_body(space, element[3].body)
+                highest_body_y_b = 0
+                highest_body_y = 0
+                last_body = new_bodies[0]
+                new_bodies.clear()
+                t_bodies.clear()
+                b_bodies.clear()
+                print(last_body)
+                end_screen(result)
         bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes
                   if shape.body.body_type != pymunk.Body.STATIC and shape.friction != air_friction]
         t_bodies = [position[0] for position in bodies]
@@ -243,17 +306,23 @@ def main(WIND: bool):
                 return
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 struct = random.choice(structs)
-                color = tuple(random.randrange(25, 231) for _ in range(3))
+                if last_body.body_type != pymunk.Body.KINEMATIC:
+                    color = tuple(random.randrange(25, 231) for _ in range(3))
+                    font_color = color
                 if last_body.body_type != pymunk.Body.KINEMATIC:
                     if last_body.body_type == pymunk.Body.STATIC:
                         create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y + 10), color=(*color, 255))
+                        if game_type == 1:
+                            counter -= 1
                     else:
                         if (resolution[1] - highest_body_y) > resolution[1] - 160:
                             create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - 250), color=(*color, 255))
+                            if game_type == 1:
+                                counter -= 1
                         else:
                             create_shape_from_struct(space, struct, position=(resolution[0] // 2, highest_body_y - highest_body_y_b), color=(*color, 255))
-                else:
-                    change_body_type(space, last_body, 'dynamic')
+                            if game_type == 1:
+                                counter -= 1
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 if last_body.body_type == 1:
                     last_body.angle += math.pi / 2
@@ -261,6 +330,8 @@ def main(WIND: bool):
         for element in bodies:
             if (element[0] - (element[0] - element[1]) * 3) > (resolution[1] + (element[0] - element[1])):
                 block_under_0_event(element[3])
+                if game_type == 1:
+                    fallen_blocks += 1
                 remove_body(space, element[3].body)
 
         if WIND:
@@ -304,9 +375,11 @@ def main(WIND: bool):
         post_step(space, 1 / FPS)
         draw_options.transform = offset
         space.debug_draw(draw_options)
+
+        if game_type == 1:
+            if counter >= 0:
+                text_surface = font.render(f"{counter}", True, font_color)
+                draw_options.surface.blit(text_surface, (resolution[0] - 40, 15))
         pygame.display.flip()
         clock.tick(FPS)
 
-
-main(True)
-pygame.quit()
