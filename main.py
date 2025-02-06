@@ -164,7 +164,7 @@ def create_wind_particle(sp, position, velocity=(500, 10), mass=40):
     shape.friction = air_friction
     shape.elasticity = 0
     shape.collision_type = 3
-    shape.color = (200, 200, 200, 0)
+    shape.color = (200, 200, 200, 255)
     sp.add(body, shape)
 
 

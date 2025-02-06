@@ -151,7 +151,7 @@ def mainWindow():
                 if 100 <= y <= 160:
                     Gamemodes(1)
                     print(Gamemode)
-                    main(False, Gamemode, resolution)
+                    main(True, Gamemode, resolution)
                     exit()
                 elif 200 <= y <= 260:
                     Gamemodes(2)
