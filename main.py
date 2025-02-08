@@ -320,7 +320,7 @@ def main(WIND: bool, game_type: int, res=None):
         resolution = res
 
     if game_type == 1:
-        counter = 5
+        counter = 77
         result = {
             "highest_block": 0,
             "amount_of_fallen_blocks": 0,
@@ -331,7 +331,7 @@ def main(WIND: bool, game_type: int, res=None):
     if game_type == 2:
         TIMER_EVENT = pygame.USEREVENT + 1
         pygame.time.set_timer(TIMER_EVENT, 1000)
-        counter = 240
+        counter = 180
         image = pygame.image.load('hp_heart.png').convert_alpha()
         health_point = pygame.transform.scale(image, (30, 30))
         result = {
