@@ -64,6 +64,9 @@ def begin_collision(arbiter, sp, data):
 def begin_w_kinematic(arbiter, sp, data):
     return True
 
+def begin_finishline_collision(arbiter, sp, data):
+    return False
+
 
 collision_handler = space.add_collision_handler(1, 1)
 collision_handler.begin = begin_collision
@@ -73,6 +76,18 @@ collision_handler_static_kinematic.begin = begin_collision
 
 collision_handler_wind_kinematic = space.add_collision_handler(1, 3)
 collision_handler_wind_kinematic.begin = begin_w_kinematic
+
+collision_handler_finish_line1 = space.add_collision_handler(5, 1)
+collision_handler_finish_line1.begin = begin_finishline_collision
+
+collision_handler_finish_line2 = space.add_collision_handler(5, 2)
+collision_handler_finish_line2.begin = begin_finishline_collision
+
+collision_handler_finish_line3 = space.add_collision_handler(5, 3)
+collision_handler_finish_line3.begin = begin_finishline_collision
+
+collision_handler_finish_line4 = space.add_collision_handler(5, 0)
+collision_handler_finish_line4.begin = begin_finishline_collision
 
 
 def post_step(sp, dt):
@@ -211,6 +226,46 @@ def create_ground(sp, camera_offset):
     sp.add(body, shape)
 
 
+def create_puzzle_ground(sp, camera_offset, segment_width=20, segment_height=20, gap_probability=0.45):
+    start_x = resolution[0] // 3 + 40
+    end_x = resolution[0] - resolution[0] // 3 - 40
+    start_y = resolution[1] - camera_offset
+    end_y = resolution[1] + camera_offset
+    ground_length = end_x - start_x
+    ground_height = end_y - start_y
+    num_segments_x = int(ground_length // segment_width)
+    num_segments_y = int(ground_height // segment_height)
+
+    segment_grid = np.zeros((num_segments_y, num_segments_x), dtype=bool)
+
+    for j in range(num_segments_y):
+        for i in range(num_segments_x):
+            if j == 0 or (segment_grid[j - 1, i] and not segment_grid[j, i]):
+                if np.random.random() > gap_probability:
+                    segment_x = start_x + i * segment_width
+                    segment_y = start_y + j * segment_height
+
+                    body = pymunk.Body(body_type=pymunk.Body.STATIC)
+
+                    vertices = [
+                        (segment_x, segment_y),
+                        (segment_x + segment_width, segment_y),
+                        (segment_x + segment_width, segment_y + segment_height),
+                        (segment_x, segment_y + segment_height),
+                    ]
+
+                    shape = pymunk.Poly(body, vertices)
+                    shape.elasticity = 0.1
+                    shape.friction = 0.7
+                    shape.collision_type = 0
+                    shape.color = (255, 255, 255, 0)
+
+                    sp.add(body, shape)
+
+                    segment_grid[j, i] = True
+
+
+
 def end_screen(result):
     while True:
         pygame.time.delay(100)
@@ -221,6 +276,7 @@ def end_screen(result):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 from MainWindow import mainWindow
                 mainWindow()
+                pygame.quit()
                 return
 
         display.fill((0, 0, 0, 50))
@@ -239,10 +295,27 @@ def end_screen(result):
 # game_type 3 -- пазл
 
 
+def draw_finish_line(sp):
+    body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+    shape = pymunk.Poly(body, ((0, 15),
+                               (resolution[0], 15),
+                               (resolution[0], 30),
+                               (0, 30)))
+    shape.elasticity = 0
+    shape.friction = 0
+    shape.collision_type = 5
+    shape.color = (45, 45, 45, 0)
+    shape.sensor = True
+    sp.add(body, shape)
+    body.velocity = (0, 0)
+
+
+
 def main(WIND: bool, game_type: int, res=None):
     global resolution
     global font
     global font_color
+    reset_game_state()
     if res is not None:
         resolution = res
 
@@ -254,52 +327,80 @@ def main(WIND: bool, game_type: int, res=None):
             "final_score": 0
         }
         fallen_blocks = 0
+
+    if game_type == 2:
+        TIMER_EVENT = pygame.USEREVENT + 1
+        pygame.time.set_timer(TIMER_EVENT, 1000)
+        counter = 240
+        image = pygame.image.load('hp_heart.png').convert_alpha()
+        health_point = pygame.transform.scale(image, (30, 30))
+        result = {
+            "highest_block": 0,
+            "amount_of_fallen_blocks": 0,
+            "final_score": 0
+        }
+        fallen_blocks = 0
+
+    if game_type == 3:
+        fallen_blocks = 0
+        result = {
+            "amount_of_blocks": 0,
+            "amount_of_fallen_blocks": 0,
+            "final_score": 0
+        }
+        draw_finish_line(space)
+
     camera = pygame.Vector2(0, -59.3)
     draw_options = CustomDrawOptions(display)
     draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
-    create_ground(space, abs(camera.y))
+    if game_type != 3:
+        create_ground(space, abs(camera.y))
+    else:
+        create_puzzle_ground(space, abs(camera.y))
     while True:
         if game_type == 1:
             if counter < 0:
-                result["highest_block"] = round(abs(highest_body_y))
+                rhby = resolution[1] - highest_dynamic_body
+                result["highest_block"] = rhby
                 result["amount_of_fallen_blocks"] = fallen_blocks
                 if not WIND:
-                    result["final_score"] = round(abs(highest_body_y) - fallen_blocks * (fallen_blocks ** 0.5)) if (abs(highest_body_y) - fallen_blocks >= 0) else 0
+                    result["final_score"] = round(rhby - fallen_blocks * (fallen_blocks ** 0.5)) if (rhby - fallen_blocks >= 0) else 0
                 else:
-                    result["final_score"] = round(abs(highest_body_y) - fallen_blocks) if (abs(highest_body_y) - fallen_blocks >= 0) else 0
+                    result["final_score"] = round(rhby - fallen_blocks) if (rhby - fallen_blocks >= 0) else 0
                 for element in bodies:
                     remove_body(space, element[3].body)
                 highest_body_y_b = 0
                 highest_body_y = 0
-                last_body = new_bodies[0]
-                new_bodies.clear()
                 t_bodies.clear()
                 b_bodies.clear()
-                print(last_body)
+                new_bodies.clear()
+                last_body = None
                 end_screen(result)
         bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes
-                  if shape.body.body_type != pymunk.Body.STATIC and shape.friction != air_friction]
+                  if shape.body.body_type != pymunk.Body.STATIC and shape.friction != air_friction and shape.collision_type != 5]
         t_bodies = [position[0] for position in bodies]
         b_bodies = [position[1] for position in bodies]
         s_bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes if
-                    shape.friction != air_friction]
+                    shape.friction != air_friction and shape.collision_type != 5]
         new_bodies = [i[2] for i in s_bodies]
-        if WIND:
-            w_bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes if shape.friction == air_friction]
-            dynamic_bodies = [i[1] for i in s_bodies if i[2].body_type == pymunk.Body.DYNAMIC]
+        w_bodies = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes if shape.friction == air_friction]
+        dynamic_bodies = [i[1] for i in s_bodies if i[2].body_type == pymunk.Body.DYNAMIC]
+        if game_type == 3:
+            finish_line = [(shape.bb.top, shape.bb.bottom, shape.body, shape) for shape in space.shapes if shape.collision_type == 5]
+            finish_line[0][2].position = (0, resolution[1] - resolution[1] // 3 - 35)
+            finish_line[0][2].velocity = (0, 1000 * fallen_blocks)
         if t_bodies:
             highest_body_y = min(t_bodies)
             highest_body_y_b = min(b_bodies)
         else:
             highest_body_y = 59.3
             highest_body_y_b = 0
-        if WIND:
-            if dynamic_bodies:
-                highest_dynamic_body = min(dynamic_bodies)
-                lowest_dynamic_body = max(dynamic_bodies)
-            else:
-                highest_dynamic_body = resolution[1]
-                lowest_dynamic_body = resolution[1]
+        if dynamic_bodies:
+            highest_dynamic_body = min(dynamic_bodies)
+            lowest_dynamic_body = max(dynamic_bodies)
+        else:
+            highest_dynamic_body = resolution[1]
+            lowest_dynamic_body = resolution[1]
         last_body = new_bodies[-1]
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -326,12 +427,14 @@ def main(WIND: bool, game_type: int, res=None):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 if last_body.body_type == 1:
                     last_body.angle += math.pi / 2
+            if game_type == 2:
+                if event.type == TIMER_EVENT:
+                    counter -= 1
 
         for element in bodies:
             if (element[0] - (element[0] - element[1]) * 3) > (resolution[1] + (element[0] - element[1])):
                 block_under_0_event(element[3])
-                if game_type == 1:
-                    fallen_blocks += 1
+                fallen_blocks += 1
                 remove_body(space, element[3].body)
 
         if WIND:
@@ -349,7 +452,7 @@ def main(WIND: bool, game_type: int, res=None):
                 if element[2].velocity[0] < 4 and element[2].velocity[1] < 4:
                     remove_body(space, element[3].body)
 
-        display.fill((200, 200, 200))
+        display.fill((155, 155, 155))
         keys = pygame.key.get_pressed()
         if keys[pygame.K_DOWN]:
             if last_body.body_type == 1:
@@ -380,6 +483,60 @@ def main(WIND: bool, game_type: int, res=None):
             if counter >= 0:
                 text_surface = font.render(f"{counter}", True, font_color)
                 draw_options.surface.blit(text_surface, (resolution[0] - 40, 15))
+        elif game_type == 2:
+            if counter >= 0:
+                text_surface = font.render(f"{counter}", True, font_color)
+                draw_options.surface.blit(text_surface, (resolution[0] - 50, 25))
+            if fallen_blocks < 2:
+                for i in range(1, (4 - fallen_blocks)):
+                    draw_options.surface.blit(health_point, (45 * i, 25))
+            if fallen_blocks > 2 or counter <= 0:
+                print('yes')
+                rhby = resolution[1] - highest_dynamic_body
+                result["highest_block"] = rhby
+                result["amount_of_fallen_blocks"] = fallen_blocks
+                result["final_score"] = round(rhby - fallen_blocks) + len(dynamic_bodies) * 2
+                for element in bodies:
+                    remove_body(space, element[3].body)
+                highest_body_y_b = 0
+                highest_body_y = 0
+                t_bodies.clear()
+                b_bodies.clear()
+                new_bodies.clear()
+                last_body = None
+                end_screen(result)
+        elif game_type == 3:
+            if highest_dynamic_body <= (finish_line[0][2].position[1] + 15.1) and len(dynamic_bodies) > 0:
+                rhby = len(dynamic_bodies)
+                result["amount_of_blocks"] = rhby
+                result["amount_of_fallen_blocks"] = fallen_blocks
+                result["final_score"] = rhby * 10 - fallen_blocks * 2
+                for element in bodies:
+                    remove_body(space, element[3].body)
+                remove_body(space, finish_line[0][2])
+                highest_body_y_b = 0
+                highest_body_y = 0
+                t_bodies.clear()
+                b_bodies.clear()
+                new_bodies.clear()
+                finish_line.clear()
+                last_body = None
+                end_screen(result)
+
         pygame.display.flip()
         clock.tick(FPS)
 
+
+def reset_game_state():
+    global space, collided_bodies
+    space = pymunk.Space()
+    space.gravity = (0, 850)
+    collided_bodies = []
+    collision_handler = space.add_collision_handler(1, 1)
+    collision_handler.begin = begin_collision
+
+    collision_handler_static_kinematic = space.add_collision_handler(0, 1)
+    collision_handler_static_kinematic.begin = begin_collision
+
+    collision_handler_wind_kinematic = space.add_collision_handler(1, 3)
+    collision_handler_wind_kinematic.begin = begin_w_kinematic

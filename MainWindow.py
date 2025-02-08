@@ -5,162 +5,159 @@ from main import main
 Gamemode = 2
 clicked = 1
 color = pygame.Color('Grey')
-resolution = (800, 800)
+resolution = (640, 480)
+info = pygame.display.Info()
+screen_width = info.current_w
+screen_height = info.current_h
+resolutions_list = [(640, 480), (800, 600), (1024, 768), (1280, 720), (screen_width, screen_height)]
+current_res_index = 0
+
+
+def calculate_positions(res, button_width=400, button_height=60):
+    positions = {
+        'center_x': (res[0] - button_width) // 2,
+        'center_y': (res[1] - button_height) // 2,
+        'button_width': button_width,
+        'button_height': button_height
+    }
+    return positions
+
+
+def draw_button(screen, rect, text, font, hover=False):
+    pygame.draw.rect(screen, pygame.Color('Black' if hover else 'White'), rect)
+    text_surface = font.render(text, False, pygame.Color('White' if hover else 'Black'))
+    text_rect = text_surface.get_rect(center=rect.center)
+    screen.blit(text_surface, text_rect)
 
 
 def Gamemodes(k):
-    global Gamemode
-    global clicked
+    global Gamemode, clicked
     pygame.init()
     pygame.font.init()
-    screen1 = pygame.display.set_mode(resolution)
-    screen1.fill(pygame.Color('White'))
+    screen = pygame.display.set_mode(resolution)
     my_font = pygame.font.SysFont('Comic Sans MS', 30)
-    text_surface = my_font.render('Start Game!', False, (0, 0, 0))
-    text_surface1 = my_font.render('Gamemode', False, (0, 0, 0))
-    text_surface2 = my_font.render('Settings', False, (0, 0, 0))
-    pygame.draw.rect(screen1, pygame.Color('White'), (200, 200, 400, 60))
-    screen1.blit(text_surface, (315, 212))
-    pygame.draw.rect(screen1, pygame.Color('White'), (200, 300, 400, 60))
-    screen1.blit(text_surface1, (325, 312))
-    pygame.draw.rect(screen1, pygame.Color('White'), (200, 400, 400, 60))
-    screen1.blit(text_surface2, (335, 412))
+    pos = calculate_positions(resolution)
+
     Y = False
     while not Y:
+        screen.fill(pygame.Color('White'))
+        x, y = pygame.mouse.get_pos()
+
+        buttons = [
+            pygame.Rect(pos['center_x'], pos['center_y'] - 100, pos['button_width'], pos['button_height']),
+            pygame.Rect(pos['center_x'], pos['center_y'], pos['button_width'], pos['button_height']),
+            pygame.Rect(pos['center_x'], pos['center_y'] + 100, pos['button_width'], pos['button_height']),
+            pygame.Rect(pos['center_x'], pos['center_y'] + 200, pos['button_width'], pos['button_height'])
+        ]
+
+        for i, (text, rect) in enumerate(zip(['Original', 'Survival', 'Puzzle', 'Back'], buttons)):
+            hover = rect.collidepoint(x, y)
+            draw_button(screen, rect, text, my_font, hover)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                mainWindow()
-            x, y = map(int, pygame.mouse.get_pos())
-            if 200 <= y <= 260 and 200 <= x <= 600:
-                pygame.draw.rect(screen1, pygame.Color('Black'), (200, 200, 400, 60))
-                text_surface = my_font.render('Оригинальный', False, pygame.Color('White'))
-                screen1.blit(text_surface, (315, 212))
-            else:
-                pygame.draw.rect(screen1, pygame.Color('White'), (200, 200, 400, 60))
-                text_surface = my_font.render('Оригинальный', False, (0, 0, 0))
-                screen1.blit(text_surface, (315, 212))
-            if 300 <= y <= 360 and 200 <= x <= 600:
-                pygame.draw.rect(screen1, pygame.Color('Black'), (200, 300, 400, 60))
-                text_surface1 = my_font.render('Выживание', False, pygame.Color('White'))
-                screen1.blit(text_surface1, (325, 312))
-            else:
-                pygame.draw.rect(screen1, pygame.Color('White'), (200, 300, 400, 60))
-                text_surface1 = my_font.render('Выживание', False, (0, 0, 0))
-                screen1.blit(text_surface1, (325, 312))
-            if 400 <= y <= 460 and 200 <= x <= 600:
-                pygame.draw.rect(screen1, pygame.Color('Black'), (200, 400, 400, 60))
-                text_surface2 = my_font.render('Пазл', False, pygame.Color('White'))
-                screen1.blit(text_surface2, (335, 412))
-            else:
-                pygame.draw.rect(screen1, pygame.Color('White'), (200, 400, 400, 60))
-                text_surface2 = my_font.render('Пазл', False, (0, 0, 0))
-                screen1.blit(text_surface2, (335, 412))
-            if 200 <= x <= 600 and event.type == pygame.MOUSEBUTTONUP and clicked == 0:
-                if 200 <= y <= 260:
-                    Gamemode = 1
-                    if k == 2:
-                        pygame.quit()
-                        mainWindow()
-                    return
-                elif 300 <= y <= 360:
-                    Gamemode = 2
-                    if k == 2:
-                        pygame.quit()
-                        mainWindow()
-                    return
-                elif 400 <= y <= 460:
-                    Gamemode = 3
-                    if k == 2:
-                        pygame.quit()
-                        mainWindow()
-                    return
-            if event.type == pygame.MOUSEBUTTONUP:
+                return
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 clicked = 0
+                for i, rect in enumerate(buttons):
+                    if rect.collidepoint(event.pos):
+                        if i == 3:
+                            Y = True
+                        else:
+                            Gamemode = i + 1
+                            if k == 1:
+                                if Gamemode == 1:
+                                    main(False, Gamemode, resolution)
+                                elif Gamemode == 2:
+                                    main(True, Gamemode, resolution)
+                                elif Gamemode == 3:
+                                    main(False, Gamemode, resolution)
+                            elif k == 2:
+                                return
         pygame.display.flip()
+
+
 def Settings():
-    global color
-    global clicked
+    global color, clicked, resolution, current_res_index
     pygame.init()
     pygame.font.init()
+    screen = pygame.display.set_mode(resolution)
     my_font = pygame.font.SysFont('Comic Sans MS', 30)
-    Col_Surf = my_font.render('Color', False, pygame.Color('Black'))
-    screen2 = pygame.display.set_mode((800, 800))
-    screen2.fill(pygame.Color('Grey'))
-    pygame.draw.rect(screen2, pygame.Color('White'), (100, 100, 400, 60))
-    screen2.blit(Col_Surf, (120, 112))
-    pygame.draw.rect(screen2, color, (370, 110, 40, 40), 25)
+    pos = calculate_positions(resolution)
+
     while True:
+        screen.fill(pygame.Color('Grey'))
         x, y = pygame.mouse.get_pos()
+
+        buttons = [
+            pygame.Rect(pos['center_x'], 200, pos['button_width'], pos['button_height']),
+            pygame.Rect(pos['center_x'], 300, pos['button_width'], pos['button_height'])
+        ]
+
+        pygame.draw.rect(screen, color, (pos['center_x'] + 150, 215, 40, 40))
+
+        for i, (text, rect) in enumerate(zip([f'Resolution: {resolution[0]}x{resolution[1]}', 'Back'], buttons)):
+            hover = rect.collidepoint(x, y)
+            draw_button(screen, rect, text, my_font, hover)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                mainWindow()
-                exit()
-            if event.type == pygame.MOUSEBUTTONUP:
+                return
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 clicked = 0
-            if 370 <= x <= 410 and 110 <= y <= 150 and event.type == pygame.MOUSEBUTTONDOWN and clicked == 0:
-                pass
+                for i, rect in enumerate(buttons):
+                    if rect.collidepoint(event.pos):
+                        if i == 0:
+                            current_res_index = (current_res_index + 1) % len(resolutions_list)
+                            resolution = resolutions_list[current_res_index]
+                            screen = pygame.display.set_mode(resolution)
+                            pos = calculate_positions(resolution)
+
+                        elif i == 1:
+                            return
         pygame.display.flip()
+
 
 def mainWindow():
-    global color
+    global color, resolution
     pygame.init()
     pygame.font.init()
-    screen = pygame.display.set_mode((800, 800))
-    screen.fill(pygame.Color(color))
+    screen = pygame.display.set_mode(resolution)
     my_font = pygame.font.SysFont('Comic Sans MS', 30)
-    text_surface = my_font.render('Start Game!', False, (0, 0, 0))
-    text_surface1 = my_font.render('Gamemode', False, (0, 0, 0))
-    text_surface2 = my_font.render('Settings', False, (0, 0, 0))
-    pygame.draw.rect(screen, pygame.Color('White'), (200, 100, 400, 60))
-    screen.blit(text_surface, (315, 112))
-    pygame.draw.rect(screen, pygame.Color('White'), (200, 200, 400, 60))
-    screen.blit(text_surface1, (325, 212))
-    pygame.draw.rect(screen, pygame.Color('White'), (200, 300, 400, 60))
-    screen.blit(text_surface2, (335, 312))
-    Y = False
-    while not Y:
+    pos = calculate_positions(resolution)
+
+    while True:
+        screen.fill(color)
+        x, y = pygame.mouse.get_pos()
+
+        buttons = [
+            pygame.Rect(pos['center_x'], 100, pos['button_width'], pos['button_height']),
+            pygame.Rect(pos['center_x'], 200, pos['button_width'], pos['button_height'])
+        ]
+
+        for i, (text, rect) in enumerate(zip(['Start Game!', 'Settings'], buttons)):
+            hover = rect.collidepoint(x, y)
+            draw_button(screen, rect, text, my_font, hover)
+
         for event in pygame.event.get():
-            x, y = map(int, pygame.mouse.get_pos())
-            if 100 <= y <= 160 and 200 <= x <= 600:
-                pygame.draw.rect(screen, pygame.Color('Black'), (200, 100, 400, 60))
-                text_surface = my_font.render('Start Game!', False, pygame.Color('White'))
-                screen.blit(text_surface, (315, 112))
-            else:
-                pygame.draw.rect(screen, pygame.Color('White'), (200, 100, 400, 60))
-                text_surface = my_font.render('Start Game!', False, (0, 0, 0))
-                screen.blit(text_surface, (315, 112))
-            if 200 <= y <= 260 and 200 <= x <= 600:
-                pygame.draw.rect(screen, pygame.Color('Black'), (200, 200, 400, 60))
-                text_surface1 = my_font.render('Gamemode', False, pygame.Color('White'))
-                screen.blit(text_surface1, (325, 212))
-            else:
-                pygame.draw.rect(screen, pygame.Color('White'), (200, 200, 400, 60))
-                text_surface1 = my_font.render('Gamemode', False, (0, 0, 0))
-                screen.blit(text_surface1, (325, 212))
-            if 300 <= y <= 360 and 200 <= x <= 600:
-                pygame.draw.rect(screen, pygame.Color('Black'), (200, 300, 400, 60))
-                text_surface2 = my_font.render('Settings', False, pygame.Color('White'))
-                screen.blit(text_surface2, (335, 312))
-            else:
-                pygame.draw.rect(screen, pygame.Color('White'), (200, 300, 400, 60))
-                text_surface2 = my_font.render('Settings', False, (0, 0, 0))
-                screen.blit(text_surface2, (335, 312))
-            if 200 <= x <= 600 and event.type == pygame.MOUSEBUTTONDOWN:
-                if 100 <= y <= 160:
-                    Gamemodes(1)
-                    print(Gamemode)
-                    main(True, Gamemode, resolution)
-                    exit()
-                elif 200 <= y <= 260:
-                    Gamemodes(2)
-                    main(False, Gamemode, resolution)
-                elif 300 <= y <= 360:
-                    Settings()
             if event.type == pygame.QUIT:
                 pygame.quit()
-                exit()
+                return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                for i, rect in enumerate(buttons):
+                    if rect.collidepoint(event.pos):
+                        if i == 1:
+                            Settings()
+                            screen = pygame.display.set_mode(resolution)
+                            pos = calculate_positions(resolution)
+                        if i == 0:
+                            Gamemodes(1)
+
         pygame.display.flip()
 
-mainWindow()
+
+if __name__ == "__main__":
+    current_res_index = resolutions_list.index(resolution) if resolution in resolutions_list else 0
+    mainWindow()
