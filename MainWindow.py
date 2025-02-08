@@ -11,7 +11,7 @@ screen_width = info.current_w
 screen_height = info.current_h
 resolutions_list = [(640, 480), (800, 600), (1024, 768), (1280, 720), (screen_width, screen_height)]
 current_res_index = 0
-
+pygame.init()
 
 def calculate_positions(res, button_width=400, button_height=60):
     positions = {
