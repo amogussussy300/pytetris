@@ -487,7 +487,7 @@ def main(WIND: bool, game_type: int, res=None):
             if counter >= 0:
                 text_surface = font.render(f"{counter}", True, font_color)
                 draw_options.surface.blit(text_surface, (resolution[0] - 50, 25))
-            if fallen_blocks < 2:
+            if fallen_blocks < 3:
                 for i in range(1, (4 - fallen_blocks)):
                     draw_options.surface.blit(health_point, (45 * i, 25))
             if fallen_blocks > 2 or counter <= 0:
